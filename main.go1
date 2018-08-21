@@ -1,0 +1,76 @@
+package main
+
+import (
+	"github.com/ethereum/go-ethereum/ethclient"
+	"log"
+
+	"context"
+	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"math/big"
+	"fmt"
+	"./contract"
+)
+
+func main() {
+	getContractAddress()
+
+	// 每一秒执行查询管理合约一次判断是否新增合约地址
+	/*	for range time.Tick(time.Second) {
+
+		}*/
+}
+
+func getContractAddress() {
+	client, err := ethclient.Dial("http://47.75.68.4:8100")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	privateKey, err := crypto.HexToECDSA("e25b87b9136969fb2dbf45bab23daccc9ed77fae5dbc2ec4928e6b86edd1169a")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	auth := bind.NewKeyedTransactor(privateKey)
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(10000)
+	auth.GasLimit = uint64(300000)
+	auth.GasPrice = gasPrice
+
+	address := common.HexToAddress("0x09d59ddab0624ae59c56f1028273598dc06f014b")
+	instance, err := manager.NewManager(address, client)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tx, err := instance.SubmitContract(auth, common.HexToAddress("0x43e9624b55f6cca4ef88be3da5c32eaf4f7ac2e8"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("tx sent: %s", tx.Hash().Hex())
+
+
+	var wacthCH chan manager.ManagerSubmitContract
+	contractCall, err :=instance.ManagerFilterer.WatchSubmitContract(auth, wacthCH)
+}
